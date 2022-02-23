@@ -43,27 +43,43 @@ for row in data:
        new_row_floats.append(floater)
        
     new_row_floats_arr=np.array(new_row_floats)
-    #print(new_row_floats_arr)
     data_rows_array = np.vstack((data_rows_array,new_row_floats_arr))
-    
-        
-        
-# for row in data:
-#     new_row = row.split()
-#     new_row_arr = np.array(new_row)
-#     data_rows_array = np.vstack((data_rows_array,new_row_arr))
-    
 
-# for row in data_arr:
-#     #print(row)
-#     new_row=np.char.split(row)
-#     data_rows_array = np.hstack((data_rows_array,new_row))
-#     #data_rows_array=np.append(data_rows_array,new_row,axis=0)
+data_rows_array = np.delete(data_rows_array, (0), axis=0)
+ 
+df_data = pd.DataFrame(data_rows_array) 
 
+df=df_data.rename(columns={0: "X", 1: "Y", 2: "Speed", 3: "Temperature", 4: "Diameter", 5: "Energy A", 6: "Energy B"})
+df.insert(0,"Time",time)
+df.insert(0,"Date",dates)
 
-#df=pd.DataFrame(data_rows_array,columns=['Date','Time','X','Y','Speed','Temperature','Diameter','EnergyA','EnergyB'])                
+"""the official dataframe of the data from the DPV *.prt file is saved as df
 
-#split_df = pd.read_excel("data_convert.xlsx")
+Proceed to do more stuff
+temp = temperature [C]
+vel = velocity [m/s]
+diam = diameter [um]
+tMelt = melting temperature [C]
+den = density [kg/m^3]  (1 g/cc = 1000 kg/m^3)
+k = thermal conductivity [W/mK]
+hf = heat of fusion [J/kg]
+h = heat transfer coefficient [W/m^2K]
+D = particle size [m]
+rp = radius of particle [m] ??
+
+            k = obj.thermalConductivity;
+            hf = obj.heatOfFusion;
+            
+            biotNumber = 30000*(0.5*diam*(10^-6))/k;
+            
+            MI = 3.3*(12*k*(temp-tMelt)*(sprayDist*(10^-3)))./(den*hf*(1+2./biotNumber).*((.5*diam*(10^-6)).^2).*vel);
+            
+            %CALCULATE KE
+            volume = (4/3)*pi*((0.5*diam).^3)*(10^(-18));
+            KE = 0.5*den*volume.*(vel.^2) * 10^6;
+            
+"""
+
 
 
 # for files in os.listdir(path_of_the_directory):
@@ -72,8 +88,5 @@ for row in data:
 #     else:
 #         continue
           
-""" extra shit """
-# for index, row in df_data.iterrows():
-#     print(row)
 
 
