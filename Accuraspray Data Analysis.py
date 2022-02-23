@@ -7,6 +7,8 @@ Created on Tue Feb 22 15:44:38 2022
 #accuraspray data, fast!
 
 """ 
+***seeing if this works with git
+
 This super cool program will ask you for the path (file location) of the folder containing your 
 accuraspray files
 
