@@ -49,9 +49,11 @@ data_rows_array = np.delete(data_rows_array, (0), axis=0)
  
 df_data = pd.DataFrame(data_rows_array) 
 
-df=df_data.rename(columns={0: "X", 1: "Y", 2: "Speed", 3: "Temperature", 4: "Diameter", 5: "Energy A", 6: "Energy B"})
+df=df_data.rename(columns={0: "X", 1: "Y", 2: "Velocity", 3: "Temperature", 4: "Diameter", 5: "Energy A", 6: "Energy B"})
 df.insert(0,"Time",time)
 df.insert(0,"Date",dates)
+
+
 
 """the official dataframe of the data from the DPV *.prt file is saved as df
 
@@ -80,7 +82,26 @@ rp = radius of particle [m] ??
             
 """
 
+All_Temps = []
+for i in df["Temperature"]:
+    All_Temps.append(float(i))
 
+All_Vel = []
+for i in df["Velocity"]:
+    All_Vel.append(float(i))
+
+All_Diameters = []
+for i in df["Diameter"]:
+    All_Diameters.append(float(i))
+
+""" 
+
+make histograms for each important variable, then make histograms for MI and OI?
+
+not really sure but then using the data we get we can say anything above MI=1 (?) is someting?
+
+
+""""
 
 # for files in os.listdir(path_of_the_directory):
 #     if files.endswith(ext):
