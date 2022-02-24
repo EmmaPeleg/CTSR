@@ -65,9 +65,12 @@ k = 138 ## for Mo at 20C (>?????)
 hf = hf = 36/95.95*1000*1000 ## heat fusion for Mo in J/kg
 density = 10.22 ## density for Mo
 Tm = 2623 ## melting temperature for Mo
+sprayDist = 16
 #biotNumber = 30000*(0.5*All_Diameters*(10^-6))/k
 
+t_fly = (2*sprayDist)/All_Vel
 
+MI = (24*k/(density*hf))*(1/(1+(4/biotNumber)))*(((All_Temps-Tm)*(t_fly))/(All_Diameters)**2)
 
 """the official dataframe of the data from the DPV *.prt file is saved as df
 
