@@ -16,6 +16,8 @@ import matplotlib.pyplot as plt
 import os
 from math import pi
 import hdbscan
+import subprocess
+
 
 #path_of_the_directory = input("Paste the path for the folder containing the desired Accuraspray files:\n" )
 path_of_the_directory = r"C:\Users\Emma Peleg\Desktop\CTSR\Mo-Study\DPV-Mo Powders\DPV Files for DAQ"
@@ -29,8 +31,9 @@ ext = ".prt"
 
 w = pd.read_table('SA110_Center_60_CG3.5.prt', header=0, delimiter='\s+')
 data_open = open("SA110_Center_60_CG3.5.prt","r")
-data = data_open.readlines()[1:]
-data=np.array(data)
+data = w[["Speed","Temperature","Diameter"]].copy()
+data=np.array(data) ## data for speed temp diameter as array for hdbscan
+
 ## INPUT VARIABELS NEEDED
 
 """the official dataframe of the data from the DPV *.prt file is saved as df
@@ -60,20 +63,66 @@ rp = radius of particle [m] ??
             
 """
 
+
+""" 
+Doing an outlier removal using hdbscan
+I think
+"""
+
+clusterer = hdbscan.HDBSCAN()
+
+fit=clusterer.fit(data)
+
+cluster_labels = clusterer.labels_
+min_cluster = clusterer.labels_.min()
+max_cluster = clusterer.labels_.max()
+cluster_prob = clusterer.probabilities_
+cluster_out = clusterer.outlier_scores_
+
+sns.distplot(clusterer.outlier_scores_[np.isfinite(clusterer.outlier_scores_)], rug=True)
+
+threshold = pd.Series(clusterer.outlier_scores_).quantile(0.9)
+outliers = np.where(clusterer.outlier_scores_ > threshold)[0]
+
+outlier_list = list(outliers)
+
+outlier_array = []
+for i in outliers:
+    out = data[i]
+    outlier_array.append(out)
+
+data_index_list=list(range(0,len(data)))
+    
+for element in outlier_list:
+    if element in data_index_list:
+        data_index_list.remove(element)
+
+clean_data=[]
+        ## removing all of the outliers and saving in new array
+        
+for i in data_index_list:
+    add_data=data[i]
+    clean_data.append(add_data)
+    
+clean_data_df = pd.DataFrame(clean_data,columns=["Velocity","Temperature","Diameter"])
+
+""" 
+Make the arrays for the different values without outliers
+"""
+
 All_Temps = []      ##  list of all particle temperatures
-for i in w["Temperature"]:
+for i in clean_data_df["Temperature"]:
     All_Temps.append(float(i))
 
 Temp_Array=np.array(All_Temps)+273.15 ## converting to Kelvin
 
 All_Vel = []        ##  list of all velocities of particles
-for i in w["Speed"]:
+for i in clean_data_df["Velocity"]:
     All_Vel.append(float(i))
 Velocity_Array=np.array(All_Vel)
 
-
 All_Diameters = []  ## list of all particle diameters
-for i in w["Diameter"]:
+for i in clean_data_df["Diameter"]:
     All_Diameters.append(float(i))
 Diameter_Array=np.array(All_Diameters)*(10**-6) #in meters!
    
@@ -81,7 +130,6 @@ Diameter_Array=np.array(All_Diameters)*(10**-6) #in meters!
 #labels clusters based on their values (-1 = statistical noise etc)
 #sort by cluster that contained most points, sort high to low 
 #use velocity or T,V,D for outliers
-
 """ 
 
 Doing the melting index, kinetic energy, and oxidation index calculations
@@ -112,7 +160,8 @@ for i in Velocity_Array:
 simpMI = Temp_Array*t_fly/Diameter_Array
 
 MI = (24*k/(density*hf))*(1/(1+(4/biotNumber)))*(((Temp_Array-Tm)*(t_fly))/((Diameter_Array)**2))
-low_Biot_MI = ((6*h)/(density*hf))*(1/(1+(4/biotNumber)))*(((Temp_Array-Tm)*(t_fly))/((Diameter_Array)**2))
+#low_Biot_MI = ((6*h)/(density*hf))*(1/(1+(4/biotNumber)))*(((Temp_Array-Tm)*(t_fly))/((Diameter_Array)**2))
+
 """ Kinetic Energy """ 
 
 Volume = (4/3)*pi*((.5*Diameter_Array)**3) ## cubic centim
@@ -121,7 +170,7 @@ KE = 0.5*density*Volume*(Velocity_Array**2)*(10**6)
  
 
 """
-Plotting the velocities, temperatures, and particle diameters
+Plotting the velocities, temperatures, and particle diameters, and MI
 """
    
 fig, axs = plt.subplots(3,1,figsize=(6,6))
@@ -138,7 +187,21 @@ plt.tight_layout()
 
 for ax in axs.flat:
     ax.set(ylabel='Count')
-  
+
+counts,bins = np.histogram(MI,20)
+max_count_MI = max(counts)-75
+middle_bin = np.mean(MI)+1
+
+fig2, ax1 = plt.subplots(1,1,figsize=(6,6))
+
+ax1=plt.hist(MI,20)
+#plt.title("Melting Index")
+plt.ylabel("Count")
+plt.xlabel("Melting Index")
+plt.axvline(x=0,ymin=0,color='black',linestyle='dotted',linewidth=3)
+plt.text(middle_bin,max_count_MI,'Molten Content',rotation=0)
+plt.tight_layout()
+ 
 """ 
 
 Previous program code, saved for later use maybe?
