@@ -20,7 +20,7 @@ import hdbscan
 
 #path_of_the_directory = input("Paste the path for the folder containing the desired Accuraspray files:\n" )
 
-path_of_the_directory = r"C:\Users\Emma Peleg\Desktop\CTSR\Mo-Study\DPV-Mo Powders\DPV Files for DAQ\SA 101 CG 3.0"
+path_of_the_directory = r"C:\Users\Emma Peleg\Desktop\CTSR\Mo-Study\DPV-Mo Powders\DPV Files for DAQ\SX 391 CG 3.0"
 ext = ".prt"
 
 os.chdir(path_of_the_directory)
@@ -164,10 +164,16 @@ for files in os.listdir(path_of_the_directory):
         
         """ Kinetic Energy """ 
         
-        Volume = (4/3)*pi*((.5*Diameter_Array)**3) ## cubic centim
-        Mass = Volume*density_cc
-        KE = 0.5*density*Volume*(Velocity_Array**2)*(10**6)
-         
+        Volume = (4/3)*pi*((.5*Diameter_Array)**3) ## cubic centimeters
+        KE = 0.5*density*Volume*(Velocity_Array**2)
+        Average_KE = np.mean(KE)*10**8 ## micro Joules
+        Average_KE_str = f"{Average_KE:.2f}" 
+        
+        """ Oxidation Index"""
+        
+        # need oxygen concentration in gas phase
+        #OI = 
+        
         
         """
         Plotting the velocities, temperatures, and particle diameters, and MI
@@ -177,10 +183,11 @@ for files in os.listdir(path_of_the_directory):
         
         axs[0].hist(Temp_Array,20,facecolor='blue',edgecolor='black')
         axs[0].set_title('Temperature (C)')
+        axs[0].set_xlim(2500,4500)
         
         axs[1].hist(Velocity_Array,20,facecolor='red',edgecolor='black')
         axs[1].set_title('Velocity (m/s)')
-        
+        axs[1].set_xlim(30,300)
         #from DPV_Run_All import setname
         
             ##change diameter unit
@@ -188,17 +195,27 @@ for files in os.listdir(path_of_the_directory):
         
         axs[2].hist(D_array_um,20,facecolor='green',edgecolor='black')
         axs[2].set_title('Diameters (um)')
+        axs[2].set_xlim(0,100)
+        plt.suptitle(setname)
         plt.tight_layout()
-        
+
         plt.savefig("TVD_"+ setname + ".png")
-        #plt.close()
-        
         for ax in axs.flat:
             ax.set(ylabel='Count')
+                   
+        """ Melting Index Figure """
+    
         
         counts,bins = np.histogram(MI,20)
         max_count_MI = max(counts)-75
         middle_bin = np.mean(MI)+1
+        
+        ## find molten % of particles
+        melt_threshold = 0
+        melted_particles = [element for element in MI if element > melt_threshold]
+        melted_number = len(melted_particles)
+        molten_percent = len(melted_particles)/len(MI)*100
+        molten_percent_str = f"{molten_percent:.2f}" 
         
         fig2, ax1 = plt.subplots(1,1,figsize=(6,5))
         
@@ -207,11 +224,31 @@ for files in os.listdir(path_of_the_directory):
         plt.ylabel("Count")
         plt.xlabel("Melting Index")
         plt.axvline(x=0,ymin=0,color='black',linestyle='dotted',linewidth=3)
-        plt.text(middle_bin,max_count_MI,'Molten Content',rotation=0)
+        plt.text(middle_bin,max_count_MI,'Molten Content '+ molten_percent_str +"%",rotation=0)
         plt.tight_layout()
-        
+        plt.xlim(-10,10)
+        plt.suptitle(setname)
+        plt.tight_layout()
         plt.savefig("MI_"+ setname + ".png")
         #plt.close()
+        
+        """ Kinetic Energy Figure """
+        
+        fig3, ax1 = plt.subplots(1,1,figsize=(6,5))
+        
+        ax1=plt.hist(KE*10**8,20,facecolor='grey',edgecolor='black')
+        #plt.title("Melting Index")
+        plt.ylabel("Count")
+        plt.xlabel("Kinetic Energy [J]")
+        plt.tight_layout()
+        x_max = 4.5*Average_KE
+        plt.text(2.5*Average_KE,500,'Average KE '+ Average_KE_str +"uJ",rotation=0)
+        #plt.xlim(0,x_max)
+        plt.suptitle(setname)
+        plt.tight_layout()
+        plt.savefig("KE_"+ setname + ".png")
+        
+
     else:
         continue
 
