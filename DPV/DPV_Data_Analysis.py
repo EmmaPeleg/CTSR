@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 import os
 from math import pi
 import hdbscan
+from scipy import stats
 
 
 #path_of_the_directory = input("Paste the path for the folder containing the desired Accuraspray files:\n" )
@@ -31,8 +32,21 @@ for files in os.listdir(path_of_the_directory):
         setname=files[0:-4]
         w = pd.read_table(files, header=0, delimiter='\s+')
         ##   data_open = open(files,"r")
-        data = w[["Speed","Temperature","Diameter"]].copy()
-        data=np.array(data) ## data for speed temp diameter as array for hdbscan
+        data_df = w[["Speed","Temperature"]].copy()
+        
+        ##diameter fixing
+        EnergyB = np.array(w["EnergyB"])
+        Old_Diameters = np.array(w["Diameter"])
+        PSA_Diameter_mode = 37.97 ## um
+        Full_Temp = np.array(w["Temperature"])
+        DC = (Old_Diameters)/(np.sqrt(EnergyB/Full_Temp**4))
+        DC_mode = stats.mode(DC)[0]
+        Old_D_mode=stats.mode(Old_Diameters)[0]
+        New_DC=DC_mode*(PSA_Diameter_mode/Old_D_mode)
+        Real_Diameters = New_DC*(np.sqrt(EnergyB/Full_Temp**4))
+        
+        data_df["Diameter"]=Real_Diameters ## adding fixed diameters
+        data=np.array(data_df) ## data for speed temp diameter as array for hdbscan
         
         ## INPUT VARIABELS NEEDED
         
@@ -71,7 +85,7 @@ for files in os.listdir(path_of_the_directory):
         
         clusterer = hdbscan.HDBSCAN()
         
-        fit=clusterer.fit(data)
+        fit=clusterer.fit(data_df)
         
         cluster_labels = clusterer.labels_
         min_cluster = clusterer.labels_.min()
@@ -83,11 +97,22 @@ for files in os.listdir(path_of_the_directory):
         
         threshold = pd.Series(clusterer.outlier_scores_).quantile(0.9)
         outliers = np.where(clusterer.outlier_scores_ > threshold)[0]
+        ### c=[array of labels]=cluster_labels
+        #cluster labels are outliers
         
-        outlier_list = list(outliers)
+        cluster_list = []
+        for i in cluster_labels:
+            cluster_list.append(i)
+        
+        outlier_list= []
+        for index,i in enumerate(cluster_labels):
+            if i == -1:
+                outlier_list.append(index)
+                #print(index,i)
+     #plot xyz with color as label
         
         outlier_array = []
-        for i in outliers:
+        for i in outlier_list:
             out = data[i]
             outlier_array.append(out)
         
@@ -98,12 +123,10 @@ for files in os.listdir(path_of_the_directory):
                 data_index_list.remove(element)
         
         clean_data=[]
-                ## removing all of the outliers and saving in new array
-                
+                ## removing all of the outliers and saving in new array        
         for i in data_index_list:
             add_data=data[i]
-            clean_data.append(add_data)
-            
+            clean_data.append(add_data)   
         clean_data_df = pd.DataFrame(clean_data,columns=["Velocity","Temperature","Diameter"])
         
         """ 
@@ -125,7 +148,9 @@ for files in os.listdir(path_of_the_directory):
         for i in clean_data_df["Diameter"]:
             All_Diameters.append(float(i))
         Diameter_Array=np.array(All_Diameters)*(10**-6) #in meters!
-           
+        #fix diameter scale coefficient bc particles r wrong!   
+        
+        
         ##use df and pandas using hdbscan (doesnt work with dataframes) so use a np array
         #labels clusters based on their values (-1 = statistical noise etc)
         #sort by cluster that contained most points, sort high to low 
@@ -165,15 +190,14 @@ for files in os.listdir(path_of_the_directory):
         """ Kinetic Energy """ 
         
         Volume = (4/3)*pi*((.5*Diameter_Array)**3) ## cubic centimeters
-        KE = 0.5*density*Volume*(Velocity_Array**2)
-        Average_KE = np.mean(KE)*10**8 ## micro Joules
+        KE = 0.5*density*Volume*(Velocity_Array**2) ## Joules
+        Average_KE = np.mean(KE)*10**6 ## micro Joules
         Average_KE_str = f"{Average_KE:.2f}" 
         
         """ Oxidation Index"""
         
         # need oxygen concentration in gas phase
         #OI = 
-        
         
         """
         Plotting the velocities, temperatures, and particle diameters, and MI
@@ -183,7 +207,7 @@ for files in os.listdir(path_of_the_directory):
         
         axs[0].hist(Temp_Array,20,facecolor='blue',edgecolor='black')
         axs[0].set_title('Temperature (C)')
-        axs[0].set_xlim(2500,4500)
+        axs[0].set_xlim(2500,5000)
         
         axs[1].hist(Velocity_Array,20,facecolor='red',edgecolor='black')
         axs[1].set_title('Velocity (m/s)')
@@ -198,17 +222,17 @@ for files in os.listdir(path_of_the_directory):
         axs[2].set_xlim(0,100)
         plt.suptitle(setname)
         plt.tight_layout()
-
+        
         plt.savefig("TVD_"+ setname + ".png")
         for ax in axs.flat:
             ax.set(ylabel='Count')
                    
         """ Melting Index Figure """
-    
         
-        counts,bins = np.histogram(MI,20)
-        max_count_MI = max(counts)-75
-        middle_bin = np.mean(MI)+1
+        
+        MI_counts,MI_bins = np.histogram(MI,20)
+        max_count_MI = max(MI_counts)-75
+        middle_bin = np.mean(MI)-5
         
         ## find molten % of particles
         melt_threshold = 0
@@ -226,23 +250,25 @@ for files in os.listdir(path_of_the_directory):
         plt.axvline(x=0,ymin=0,color='black',linestyle='dotted',linewidth=3)
         plt.text(middle_bin,max_count_MI,'Molten Content '+ molten_percent_str +"%",rotation=0)
         plt.tight_layout()
-        plt.xlim(-10,10)
+        plt.xlim(-5,5)
         plt.suptitle(setname)
         plt.tight_layout()
         plt.savefig("MI_"+ setname + ".png")
         #plt.close()
         
         """ Kinetic Energy Figure """
-        
+        KE_counts,KE_bins = np.histogram(KE*10**6,20)
+        max_count_KE = max(KE_counts)-10
+        middle_bin_KE = np.mean(KE*10**6)+.5
         fig3, ax1 = plt.subplots(1,1,figsize=(6,5))
         
-        ax1=plt.hist(KE*10**8,20,facecolor='grey',edgecolor='black')
+        ax1=plt.hist(KE*10**6,20,facecolor='grey',edgecolor='black')
         #plt.title("Melting Index")
         plt.ylabel("Count")
-        plt.xlabel("Kinetic Energy [J]")
+        plt.xlabel("Kinetic Energy [uJ]")
         plt.tight_layout()
         x_max = 4.5*Average_KE
-        plt.text(2.5*Average_KE,500,'Average KE '+ Average_KE_str +"uJ",rotation=0)
+        plt.text(middle_bin_KE,max_count_KE,'Average KE '+ Average_KE_str +"uJ",rotation=0)
         #plt.xlim(0,x_max)
         plt.suptitle(setname)
         plt.tight_layout()
