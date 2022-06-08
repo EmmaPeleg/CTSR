@@ -204,19 +204,27 @@ for root, dirs, files in os.walk(path_of_the_directory):
             fig, axs = plt.subplots(3,1,figsize=(6,6))
             
             axs[0].hist(Temp_Array,K,facecolor='blue',edgecolor='black')
-            axs[0].set_title('Temperature (C)')
+            #axs[0].set_title('Temperature (C)')
             #axs[0].set_xlim(2500,5000)
-            
+            mean_temperature = np.mean(All_Temps)
+            axs[0].set_xlabel('Temperature (C)' + " (Mean = " + str(round(mean_temperature,2)) + ")", fontsize=13)
+
             axs[1].hist(Velocity_Array,K,facecolor='red',edgecolor='black')
-            axs[1].set_title('Velocity (m/s)')
+            mean_velocity = np.mean(All_Vel)
+            axs[1].set_xlabel("Velocity (m/s)" + " (Mean = " + str(round(mean_velocity,2)) + ")", fontsize=13)
+            #axs[1].set_title('Velocity (m/s)')
             #axs[1].set_xlim(30,300)
-            #from DPV_Run_All import setname
+           
+        
+        #from DPV_Run_All import setname
             
                 ##change diameter unit
             D_array_um = np.array(All_Diameters)
             
             axs[2].hist(D_array_um,K,facecolor='green',edgecolor='black')
-            axs[2].set_title('Diameters (um)')
+            mean_diameters = np.mean(All_Diameters)
+            axs[2].set_xlabel('Diameters (um)' + " (Mean = " + str(round(mean_diameters,2)) + ")", fontsize=13)
+            #axs[2].set_title('Diameters (um)')
             #axs[2].set_xlim(0,60)
             plt.suptitle(setname)
             plt.tight_layout()
